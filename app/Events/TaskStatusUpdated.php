@@ -1,0 +1,27 @@
+<?php
+
+namespace App\Events;
+
+use App\Models\Task;
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+
+class TaskStatusUpdated implements ShouldBroadcast
+{
+    public $task;
+
+    public function __construct(Task $task)
+    {
+        $this->task = $task;
+    }
+
+    public function broadcastOn()
+    {
+        return new Channel('task-status.' . $this->task->user_id);
+    }
+
+    public function broadcastAs()
+    {
+        return 'task.updated';
+    }
+}
