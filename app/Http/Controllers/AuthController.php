@@ -2,46 +2,41 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\User;
+use App\Repositories\UserRepository;
+use App\Http\Requests\UserRegistrationRequest;
+use App\Http\Requests\UserLoginRequest;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    // ثبت‌نام کاربر جدید
-    public function register(Request $request)
+    protected $userRepository;
+
+    public function __construct(UserRepository $userRepository)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6',
-        ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+        $this->userRepository = $userRepository;
+    }
 
+    public function register(UserRegistrationRequest $request)
+    {
+
+        $userData = $request->validated();
+        $user = $this->userRepository->createUser($userData);
         return response()->json(['message' => 'User registered successfully', 'user' => $user]);
     }
 
-    // ورود کاربر
-    public function login(Request $request)
+    public function login(UserLoginRequest $request)
     {
-        $credentials = $request->validate([
-            'email' => 'required|string|email',
-            'password' => 'required|string',
-        ]);
+        $credentials = $request->validated();
 
-        if (Auth::attempt($credentials)) {
-            $user = Auth::user();
-            $token = $user->createToken('authToken')->plainTextToken;
+        $user = $this->userRepository->getUserByEmail($credentials['email']);
 
-            return response()->json(['token' => $token]);
+        if (!$user || !Auth::attempt($credentials)) {
+            return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        return response()->json(['message' => 'Unauthorized'], 401);
+        $token = $user->createToken('authToken')->plainTextToken;
+
+        return response()->json(['token' => $token]);
     }
 }

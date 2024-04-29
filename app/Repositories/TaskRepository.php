@@ -12,16 +12,15 @@ class TaskRepository
         $task->user_id = $userId;
         $task->title = $title;
         $task->description = $description;
-        $task->completed = false;
         $task->save();
 
         return $task;
     }
 
-    public function updateStatus($taskId, $completed)
+    public function updateStatus($taskId, $status)
     {
         $task = Task::findOrFail($taskId);
-        $task->completed = $completed;
+        $task->status = $status;
         $task->save();
         return $task;
     }

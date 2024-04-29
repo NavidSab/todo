@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Events\TaskStatusUpdated;
-use Illuminate\Http\Request;
 use App\Repositories\TaskRepository;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Requests\TaskStoreRequest;
+use App\Http\Requests\TaskStatusUpdateRequest;
 
 class TaskController extends Controller
 {
@@ -14,48 +15,39 @@ class TaskController extends Controller
     public function __construct(TaskRepository $taskRepository)
     {
         $this->taskRepository = $taskRepository;
+        
     }
 
-    public function store(Request $request)
+    public function store(TaskStoreRequest $request)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'nullable|string',
-        ]);
+
+        $validatedData = $request->validated();
 
         $task = $this->taskRepository->createTask(
             Auth::id(),
-            $request->title,
-            $request->description
+            $validatedData['title'],
+            $validatedData['description']
         );
 
         return response()->json(['message' => 'Task created successfully', 'task' => $task]);
     }
 
- 
-
-
-      public function update(Request $request, $id)
+    public function update(TaskStatusUpdateRequest $request, $id)
     {
-        $request->validate([
-            'completed' => 'required|boolean',
-        ]);
+        $validatedData = $request->validated();
 
-        $task = $this->taskRepository->updateStatus($id, $request->completed);
+        try {
+            $task = $this->taskRepository->updateStatus($id, $validatedData['status']);
 
-        //fire update task status change event
-        event(new TaskStatusUpdated($task));
+            // Fire update task status change event
+            event(new TaskStatusUpdated($task));
 
-        return response()->json(['message' => 'Task status updated successfully', 'task' => $task]);
-
-
-        
+            return response()->json(['message' => 'Task status updated successfully', 'task' => $task]);
+        } catch (\Exception $e) {
+            // Log or handle the exception appropriately
+            return response()->json(['message' => 'Failed to update task status', 'error' => $e->getMessage()], 500);
+        }
     }
-
-
-
-
-
 }
 
 
